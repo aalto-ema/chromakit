@@ -56,9 +56,10 @@ Standalone app packaging and dependency-redistribution review remain future work
 
 Version 0.1.0 is an early development version, not a validated instrument-specific
 release. Changes are recorded under Unreleased in CHANGELOG.md. Native Windows
-and real vendor-format validation remain outstanding. Saving/reopening projects,
-figure exports and built-in image extraction are not implemented. Do not advertise
-those planned capabilities as available, or publish screenshots containing lab data.
+and real vendor-format validation remain outstanding. Projects, exports, labels, image
+recovery, external calibration, text batches and libraries now have working initial
+flows; see WORKFLOWS.md for precise scope. Do not advertise deferred refinements as
+available or publish screenshots containing lab data.
 
 For a later tagged release, repeat checks in a fresh environment, install the built
 wheel independently of the checkout, smoke-test the launcher/entry point, update the

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -27,15 +27,23 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from chromakit.annotations.labels import reviewed_labels
 from chromakit.application.baselines import BaselineState
 from chromakit.application.deconvolution import FitState
 from chromakit.application.peaks import PeakState
 from chromakit.domain import Trace
 from chromakit.ui.baseline_panel import BaselinePanel
+from chromakit.ui.batch_dialog import BatchDialog
+from chromakit.ui.calibration_dialog import CalibrationDialog
+from chromakit.ui.digitize_dialog import DigitizeDialog
+from chromakit.ui.export_dialog import ExportDialog
 from chromakit.ui.fit_panel import FitPanel
 from chromakit.ui.import_dialog import ImportDialog
+from chromakit.ui.label_panel import LabelPanel, MovableLabel
+from chromakit.ui.library_dialog import LibraryDialog
 from chromakit.ui.models import TraceModel
 from chromakit.ui.peak_panel import PeakPanel
+from chromakit.ui.project_actions import ProjectActions
 from chromakit.ui.theme import COLORS
 
 
@@ -90,13 +98,14 @@ class ChromatogramPlot(pg.PlotWidget):
         return QSize(200, min(getattr(self, "preferred_height", 280), 230))
 
 
-class MainWindow(QMainWindow):
+class MainWindow(ProjectActions, QMainWindow):
     def __init__(self):
         super().__init__()
         self.traces: list[Trace] = []
         self.baseline_states: list[BaselineState] = []
         self.peak_states: list[PeakState] = []
         self.fit_states: list[FitState] = []
+        self.label_items = []
         self.peak_region = None
         self.peaks_focused = False
         self.region_items = []
@@ -152,7 +161,9 @@ class MainWindow(QMainWindow):
         sidebar_layout.addWidget(self.remove_button)
         sidebar_layout.addWidget(label("LOCAL WORKSPACE", "section"))
         sidebar_layout.addWidget(
-            label("CSV · TSV · TXT\nImports stay in memory for this session.", "muted", True)
+            label(
+                "CSV · TSV · TXT · Images\nSave portable projects to keep your work.", "muted", True
+            )
         )
         splitter.addWidget(sidebar)
 
@@ -228,6 +239,17 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Ready · Open a file or drop one into the workspace")
         self.session_note = label("ChromaKit 0.1  ·  Local session", "muted")
         self.statusBar().addPermanentWidget(self.session_note)
+        self.setup_projects()
+        self.label_panel = LabelPanel(self)
+        self.inspector_tabs.addTab(self.label_panel, "Labels")
+        self.label_panel.changed.connect(self.render_labels)
+        self.label_panel.changed.connect(self.project_changed)
+        self.label_panel.changed.connect(self.update_history_actions)
+        self.inspector_tabs.currentChanged.connect(self.render_labels)
+        self.baseline_panel.changed.connect(self.refresh_labels)
+        self.peak_panel.changed.connect(self.refresh_labels)
+        self.fit_panel.changed.connect(self.refresh_labels)
+        self.samples.currentRowChanged.connect(self.refresh_labels)
 
     def _build_menu(self):
         edit_menu = self.menuBar().addMenu("&Edit")
@@ -247,11 +269,31 @@ class MainWindow(QMainWindow):
         self.open_action.setShortcut(QKeySequence.StandardKey.Open)
         self.open_action.triggered.connect(self.choose_file)
         file_menu.addAction(self.open_action)
+        image_action = QAction("Recover chromatogram from image…", self)
+        image_action.triggered.connect(self.open_image)
+        file_menu.addAction(image_action)
+        review_image_action = QAction("Review/edit recovered image…", self)
+        review_image_action.triggered.connect(self.review_image)
+        file_menu.addAction(review_image_action)
+        self.export_action = QAction("Export figure or results…", self)
+        self.export_action.triggered.connect(self.open_export)
+        file_menu.addAction(self.export_action)
         file_menu.addSeparator()
         exit_action = QAction("&Quit", self)
         exit_action.setShortcut(QKeySequence.StandardKey.Quit)
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
+        analysis_menu = self.menuBar().addMenu("&Analysis")
+        calibration_action = QAction("External-standard calibration…", self)
+        calibration_action.triggered.connect(lambda: CalibrationDialog(self).exec())
+        analysis_menu.addAction(calibration_action)
+        batch_action = QAction("Batch process text chromatograms…", self)
+        batch_action.triggered.connect(lambda: BatchDialog(self).exec())
+        analysis_menu.addAction(batch_action)
+        library_action = QAction("Compound library and retention matching…", self)
+        library_action.triggered.connect(lambda: LibraryDialog(self).exec())
+        analysis_menu.addAction(library_action)
+        self.analysis_menu = analysis_menu
         view_menu = self.menuBar().addMenu("&View")
         self.fit_action = QAction("Fit entire trace", self)
         self.fit_action.setShortcut("Ctrl+0")
@@ -479,6 +521,142 @@ class MainWindow(QMainWindow):
         self.inspector_tabs.currentChanged.connect(self.render_peaks)
         return self.inspector_tabs
 
+    def refresh_labels(self, *_):
+        if hasattr(self, "label_panel"):
+            self.label_panel.refresh()
+            self.render_labels()
+
+    def render_labels(self, *_):
+        for plot, item in self.label_items:
+            plot.removeItem(item)
+        self.label_items.clear()
+        if self.trace is None or not hasattr(self, "label_panel"):
+            return
+        row = self.samples.currentRow()
+        labels = reviewed_labels(
+            self.label_panel.entries(),
+            self.peak_states[row].result,
+            self.fit_states[row].result,
+            self.baseline_states[row].applied,
+            self.project_extras.get("compound_library", []),
+        )
+        for entry in labels:
+            if entry["stale"]:
+                continue
+            for plot, raw in (
+                (self.plot, True),
+                (self.corrected_plot, False),
+                (self.fit_panel.plot, False),
+            ):
+                item = MovableLabel(
+                    entry["name"] + (" ?" if entry["status"] == "Tentative" else "")
+                )
+                x = entry.get("label_x", entry["time"])
+                y = entry.get(
+                    "label_y_raw" if raw else "label_y",
+                    entry["raw_height"] if raw else entry["height"],
+                )
+                item.setPos(x, y)
+                item.setRotation(entry.get("rotation", 0))
+                item.moved.connect(
+                    lambda x, y, identifier=entry["id"], raw=raw: self.label_panel.move(
+                        identifier, x, y, raw
+                    )
+                )
+                plot.addItem(item, ignoreBounds=True)
+                self.label_items.append((plot, item))
+                lower, upper = plot.getViewBox().viewRange()[1]
+                span = max(
+                    float(
+                        np.ptp(
+                            self.trace.signal
+                            if raw
+                            else self.baseline_states[row].applied.corrected
+                        )
+                    ),
+                    np.finfo(float).eps,
+                )
+                if y + 0.12 * span > upper or y - 0.12 * span < lower:
+                    plot.setYRange(
+                        min(lower, y - 0.12 * span), max(upper, y + 0.12 * span), padding=0
+                    )
+        # Layout and pending plot auto-ranging finish after this callback. Text
+        # has a fixed pixel size, so reserve space using its final scene bounds.
+        QTimer.singleShot(0, self.ensure_label_space)
+
+    def ensure_label_space(self):
+        for plot, item in self.label_items:
+            if not plot.isVisible():
+                continue
+            view = plot.getViewBox()
+            lower, upper = view.viewRange()[1]
+            rect = item.sceneBoundingRect().adjusted(0, -8, 0, 8)
+            top = view.mapSceneToView(rect.topLeft()).y()
+            bottom = view.mapSceneToView(rect.bottomRight()).y()
+            if top > upper or bottom < lower:
+                view.setYRange(min(lower, bottom), max(upper, top), padding=0)
+
+    def open_export(self):
+        if self.trace is None:
+            return
+        row = self.samples.currentRow()
+        labels = reviewed_labels(
+            self.project_extras.get("labels", {}).get(self.trace.id, []),
+            self.peak_states[row].result,
+            self.fit_states[row].result,
+            self.baseline_states[row].applied,
+            self.project_extras.get("compound_library", []),
+        )
+        settings = dict(self.project_extras.get("figure_spec", {}))
+        dialog = ExportDialog(
+            self.trace,
+            self.baseline_states[row].applied,
+            self.peak_states[row].result,
+            self.fit_states[row].result,
+            labels,
+            settings,
+            self,
+        )
+        dialog.exec()
+        if settings:
+            self.project_extras["figure_spec"] = settings
+        self.project_changed()
+
+    def review_image(self):
+        record = (
+            self.project_extras.get("digitizations", {}).get(self.trace.id) if self.trace else None
+        )
+        if record is None:
+            QMessageBox.information(
+                self,
+                "No recovered image",
+                "Choose an image-recovered trace to review its embedded source and calibration.",
+            )
+            return
+        try:
+            dialog = DigitizeDialog(Path(record["source_filename"]), self, record=record)
+            if dialog.exec() == dialog.DialogCode.Accepted and dialog.trace:
+                self.project_extras.setdefault("digitizations", {})[dialog.trace.id] = dialog.record
+                self.add_trace(dialog.trace)
+                self.project_changed()
+        except (OSError, ValueError) as error:
+            QMessageBox.warning(self, "Image review failed", str(error))
+
+    def open_image(self):
+        filename, _ = QFileDialog.getOpenFileName(
+            self, "Recover chromatogram", "", "Images (*.png *.jpg *.jpeg *.tif *.tiff)"
+        )
+        if not filename:
+            return
+        try:
+            dialog = DigitizeDialog(Path(filename), self)
+            if dialog.exec() == dialog.DialogCode.Accepted and dialog.trace:
+                self.project_extras.setdefault("digitizations", {})[dialog.trace.id] = dialog.record
+                self.add_trace(dialog.trace)
+                self.project_changed()
+        except (OSError, ValueError) as error:
+            QMessageBox.warning(self, "Image recovery failed", str(error))
+
     def choose_file(self):
         path, _ = QFileDialog.getOpenFileName(
             self, "Import chromatogram", "", "Text data (*.csv *.tsv *.txt);;All files (*)"
@@ -638,6 +816,7 @@ class MainWindow(QMainWindow):
             )
             target.getViewBox().autoRange(padding=0.04)
             self.corrected_plot.getViewBox().enableAutoRange(axis=pg.ViewBox.YAxis, enable=True)
+            self.render_labels()
 
     def toggle_zoom(self, checked=False):
         mode = pg.ViewBox.RectMode if checked else pg.ViewBox.PanMode
@@ -713,16 +892,22 @@ class MainWindow(QMainWindow):
             event.acceptProposedAction()
 
     def closeEvent(self, event: QCloseEvent):
-        if self.traces:
-            answer = QMessageBox.question(
-                self,
-                "Close workspace?",
-                "Imported traces and baseline edits are held in memory for this session. "
-                "Close the workspace? Your source files will remain unchanged.",
-                QMessageBox.StandardButton.Close | QMessageBox.StandardButton.Cancel,
-                QMessageBox.StandardButton.Cancel,
-            )
-            if answer != QMessageBox.StandardButton.Close:
+        if self.project_task:
+            event.ignore()
+            return
+        if self.project_signature() != self.saved_signature:
+            approved = []
+
+            def proceed():
+                if approved:
+                    self.saved_signature = self.project_signature()
+                    self.close()
+                else:
+                    approved.append(True)
+
+            permitted = self.guard_project_changes(proceed)
+            if not permitted:
+                approved.append(True)
                 event.ignore()
                 return
         self.baseline_panel.shutdown()
@@ -865,7 +1050,9 @@ class MainWindow(QMainWindow):
             panel.add_anchor(point.x(), point.y())
 
     def history_action(self, redo=False):
-        if self.inspector_tabs.currentIndex() == 3:
+        if self.inspector_tabs.currentIndex() == 4:
+            self.label_panel.history_action(redo)
+        elif self.inspector_tabs.currentIndex() == 3:
             self.fit_panel.history_action(redo)
         elif self.inspector_tabs.currentIndex() == 2:
             self.peak_panel.history_action(redo)
@@ -875,22 +1062,29 @@ class MainWindow(QMainWindow):
     def update_history_actions(self):
         peaks = self.inspector_tabs.currentIndex() == 2
         fitting = self.inspector_tabs.currentIndex() == 3
+        labels = self.inspector_tabs.currentIndex() == 4
         state = (
-            self.fit_panel.state
+            self.label_panel
+            if labels
+            else self.fit_panel.state
             if fitting
             else self.peak_panel.state
             if peaks
             else self.baseline_panel.state
         )
         self.undo_action.setText(
-            "Undo fit change"
+            "Undo label change"
+            if labels
+            else "Undo fit change"
             if fitting
             else "Undo peak change"
             if peaks
             else "Undo baseline change"
         )
         self.redo_action.setText(
-            "Redo fit change"
+            "Redo label change"
+            if labels
+            else "Redo fit change"
             if fitting
             else "Redo peak change"
             if peaks
@@ -900,7 +1094,7 @@ class MainWindow(QMainWindow):
         self.redo_action.setEnabled(state is not None and bool(state.redo_history))
 
     def render_peaks(self, *_):
-        focused = self.inspector_tabs.currentIndex() == 2
+        focused = self.inspector_tabs.currentIndex() in (2, 4)
         if focused != self.peaks_focused:
             self.cursor_readout.setText(
                 "Move over the corrected trace to inspect a sample"

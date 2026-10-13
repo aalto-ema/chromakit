@@ -1,7 +1,8 @@
 """Qt-free trace records. Source samples remain unchanged and read-only."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from uuid import uuid4
 
 import numpy as np
 from numpy.typing import NDArray
@@ -27,6 +28,7 @@ class Trace:
     warnings: tuple[str, ...]
     gap_after: NDArray[np.bool_]
     import_settings: tuple[tuple[str, str], ...]
+    id: str = field(default_factory=lambda: uuid4().hex)
 
     @property
     def display_time(self) -> NDArray[np.float64]:

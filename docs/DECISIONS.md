@@ -96,3 +96,9 @@ next implementation slice, and promote confirmed answers into this document.
 - Compare fresh 2–5-component alternatives with RMSE/AICc/BIC under stated assumptions;
   never accept a count automatically. Show conditioning, correlations, constraints,
   starting sensitivity and conditional covariance limitations. See DECONVOLUTION.md.
+
+## User-confirmed expansion
+- Implement in order: projects, exports, labels, image recovery, calibration, batch, compound library.
+- Projects embed sampled data and original digitization images for portability.
+- External-standard linear calibration: unweighted/1/x/1/x²; fitted or zero intercept.
+- Compound matching starts with editable names and retention windows plus manual review.

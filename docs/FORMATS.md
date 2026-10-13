@@ -7,7 +7,7 @@ software and file versions matter as much as the hardware brand.
 | Input | Priority | Status / evidence needed |
 | --- | --- | --- |
 | CSV, TSV, TXT sampled time/signal | First slice | Implemented; explicit mapping, headers, units, locale/encoding controls; synthetic fixtures tested |
-| PNG/JPEG/TIFF chromatogram pictures | Early single-trace phase | Planned; calibrated image recovery, not a native reader |
+| PNG/JPEG/TIFF chromatogram pictures | Early single-trace phase | Implemented: linear axis calibration, color/manual tracing, masks and original-image provenance; see WORKFLOWS.md |
 | AIA/ANDI netCDF, commonly `.cdf` | Early exchange adapter | Planned; schema sniffing and representative raw-data fixtures |
 | Thermo Chromeleon ASCII/raw-data export | Initial vendor route | Planned; actual lab CDS version and example exports needed |
 | Agilent OpenLab CSV/AIA raw-data export | Initial vendor route | Planned; exact export options and sample fixtures needed |

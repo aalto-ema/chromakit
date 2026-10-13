@@ -108,3 +108,14 @@ outside the present scope. Diagnostics/logging should avoid leaking lab data.
 - Evaluate Pillow/OpenCV for image digitization only when the first slice needs it.
 
 Dependency presence never substitutes for chromatogram-specific validation.
+
+## Implemented workflow expansion
+`persistence/project.py` implements version-1 portable ZIP/JSON/NPY projects with
+atomic saves and field/array/feature validation. Qt project actions protect unsaved
+changes and use workers. `export/` shares FigureSpec across preview and figure
+formats, and exports accepted current tables. `annotations/` separates assignment
+identity and layout; `digitization/` calibrates/traces images with preserved gaps.
+`analysis/calibration.py` implements external weighted linear models; `application/batch.py`
+provides per-file outcomes; `compounds/` validates libraries and ambiguous matches.
+Feature metadata lives in project extras keyed by stable trace/compound IDs; worker
+previews and transient caches remain outside the saved session. See WORKFLOWS.md.

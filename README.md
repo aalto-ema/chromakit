@@ -4,26 +4,22 @@
 [Issues](https://github.com/aalto-ema/chromakit/issues) ·
 [CI](https://github.com/aalto-ema/chromakit/actions/workflows/ci.yml)
 
-A PySide6 desktop workspace for importing, inspecting, and baseline-correcting
-chromatograms, with automatic peak detection, measured integration and constrained
-overlapping-peak deconvolution. Annotation, calibration, and figure exports are planned.
+A PySide6 research desktop workspace for chromatogram analysis, with baseline
+correction, measured integration, overlapping-peak fits, portable projects, figure
+exports, image recovery, compound labels/libraries, calibration and batch processing.
 
-**Current status:** a styled workspace with CSV/TSV/TXT import preview, explicit
-column/unit mapping, interactive plotting, sample inspection, and data tables.
-Whole-trace baseline correction includes arPLS/AsLS spline methods, presets, manual
-anchors, protected/excluded regions, live raw/baseline/corrected plots, and undo/redo.
-Peak detection uses the applied corrected signal, with editable integration bounds
-and retention-time/height/area tables, review flags, and per-trace history.
-Several files can be held in a session; one trace is displayed at a time. Project
-saving, vendor-native import, image digitization, and export are not yet implemented.
-Deconvolution includes Gaussian and tailed models, editable bounds/locks, live component
-and residual plots, fitted areas/diagnostics, count comparisons, and accepted history.
+**Current status:** CSV/TSV/TXT import and inspection, whole-trace baseline correction,
+measured integration, constrained peak fits, portable project save/reopen, figure/result
+export, editable compound labels, calibrated image recovery, external-standard
+calibration, reviewed batch processing and a retention-window compound library.
+Native vendor-file readers remain planned. Native macOS workflows are checked;
+native Windows and representative laboratory validation remain outstanding.
 
 ## Start
 
 Use **Python 3.11 or later**. macOS and Windows are the target desktop platforms.
-This is an early research app: analysis is session-only, so closing the app discards
-imported traces and processing results. Project saving is not implemented yet.
+This is an early research app. Save a `.chromakit` project to preserve imported
+data, processing, labels, images, calibration and library records between sessions.
 
 From a source checkout, create an environment and install the app on macOS/Linux:
 
@@ -85,8 +81,8 @@ interval are flagged and drawn disconnected; this is a heuristic, not a detector
 of all acquisition gaps. Original coordinates and signals remain read-only.
 Plot downsampling for dense continuous traces affects display only.
 
-Imports run in cancellable background tasks. Imported data is held in memory
-for the session; source files are never overwritten. Reimport files after closing.
+Imports run in cancellable background tasks; source files are never overwritten.
+Use File → Save project to embed data and results for reopening.
 
 ## Correct a baseline
 
@@ -114,6 +110,25 @@ and locks in **Parameters & bounds**; inspect live fits and residuals, then revi
 for model definitions, workflow, limits and uncertainty. A synthetic overlap example
 and its truth parameters are in `examples/synthetic_overlaps.csv` and its JSON companion.
 
+## Projects and the expanded workflow
+
+- **File → Save/Open project**: portable projects with embedded traces and images.
+- **File → Export figure or results**: PNG/TIFF/PDF/SVG, exact sizes, transparency,
+  font settings, and provenance-bearing CSV/JSON tables.
+- **Labels** tab: compound names, review states, rotation, draggable placement and history.
+- **File → Recover chromatogram from image**: calibrated axes, color/manual tracing,
+  masks, editable points and explicit missing intervals.
+- **Analysis → External-standard calibration**: linear fits, weighting/intercept options,
+  residuals, reviewed standards, ranged concentrations and dilution factors.
+- **Analysis → Batch process text chromatograms**: reusable mappings/analysis settings,
+  per-file outcomes, cancellation and reviewed addition to a project.
+- **Analysis → Compound library and retention matching**: editable windows, aliases,
+  detector rules, CSV/JSON libraries and manually reviewed tentative assignments.
+
+Read [the workflow guide](docs/WORKFLOWS.md) for detailed instructions, format limits
+and remaining extensions. Image/calibration/matching results require review;
+retention matches alone do not establish chemical identity.
+
 ## Project guide
 
 - [AGENTS.md](AGENTS.md): instructions for coding agents and contributors.
@@ -131,7 +146,8 @@ and its truth parameters are in `examples/synthetic_overlaps.csv` and its JSON c
 - [Public publishing checklist](docs/PUBLISHING.md): repository and distribution preparation.
 
 SciPy and pybaselines are installed as core dependencies for baseline correction.
-The optional `analysis` extra currently adds Matplotlib for future figure exports.
+Matplotlib and Pillow are core dependencies for figure export and image recovery.
+The `analysis` extra is retained for compatibility with earlier installs.
 
 ```sh
 python -m compileall -q run_app.py src

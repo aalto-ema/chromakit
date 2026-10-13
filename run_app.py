@@ -13,7 +13,7 @@ if (
     and Path(sys.prefix).resolve() != environment.resolve()
     and any(
         importlib.util.find_spec(name) is None
-        for name in ("PySide6", "numpy", "pyqtgraph", "scipy", "pybaselines")
+        for name in ("PySide6", "numpy", "pyqtgraph", "scipy", "pybaselines", "matplotlib", "PIL")
     )
 ):
     os.execv(str(interpreter), [str(interpreter), str(Path(__file__).resolve()), *sys.argv[1:]])

@@ -2,8 +2,8 @@
 
 Implemented for imported single traces. Baselines and corrected signals are
 derived results; source arrays and files are unchanged. Applied results, drafts,
-and undo/redo history are held in memory for the session. Project persistence
-and baseline export have not been implemented.
+and undo/redo history are saved in portable projects. Applied baselines/corrected
+samples and figures can be exported; see WORKFLOWS.md.
 
 ## Workflow
 1. Import a chromatogram and click **Baseline…** or the **Baseline** inspector tab.

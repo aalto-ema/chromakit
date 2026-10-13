@@ -9,8 +9,9 @@ the single-trace workflow. Native file variants remain to be identified.
 Primary journey: import → inspect → correct baseline → detect/integrate or fit
 peaks → assign labels → review → save/export. Generic text import and interactive
 trace inspection, baseline correction, peak detection/integration and constrained
-peak deconvolution are implemented. Image recovery, calibration, labeling, persistence,
-and export requirements below remain planned.
+peak deconvolution are implemented. Projects, exports, labels, calibrated image recovery,
+external-standard calibration, batches and libraries now have working initial flows;
+see WORKFLOWS.md for implemented scope versus advanced requirements below.
 
 ## Import and trace inspection
 - Read common delimited text (CSV, TSV, TXT) with a preview for headers, delimiter,

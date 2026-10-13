@@ -14,7 +14,12 @@ from chromakit.ui.window import MainWindow
 def workspace(qtbot, qapp):
     apply_theme(qapp)
     window = MainWindow()
-    qtbot.addWidget(window, before_close_func=lambda widget: widget.traces.clear())
+    qtbot.addWidget(
+        window,
+        before_close_func=lambda widget: setattr(
+            widget, "saved_signature", widget.project_signature()
+        ),
+    )
     window.show()
     x, baseline, peaks, noise = synthetic_curve()
     trace, applied = corrected_trace(x, peaks + noise)

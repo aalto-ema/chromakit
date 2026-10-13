@@ -2,7 +2,7 @@
 
 Implemented for single chromatograms using the **applied** baseline-corrected
 signal. Unapplied baseline previews never become measurement inputs. Raw arrays
-and baseline results remain unchanged. Peak results are held in memory per session.
+and baseline results remain unchanged. Results and history can be saved in projects.
 
 ## Workflow
 1. Import a trace, review its baseline, and click **Apply baseline**.
@@ -84,6 +84,7 @@ macOS checks cover selection, table/plot editing, reintegration, invalid edits,
 trace switching, scientific entry, and undo/redo.
 
 Fitted deconvolution is implemented separately; see DECONVOLUTION.md.
-Compound assignment, manual peak creation, concentration calibration, persistent projects, and table export remain future work. Native Windows
+Compound labels, external calibration, portable projects and table export are
+implemented; see WORKFLOWS.md. Manual peak creation remains future work. Native Windows
 and representative lab data still need validation. Synthetic recovery criteria
 are not universal experimental error guarantees.

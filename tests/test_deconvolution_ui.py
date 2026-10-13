@@ -13,7 +13,12 @@ from chromakit.ui.window import MainWindow
 def workspace(qtbot, qapp):
     apply_theme(qapp)
     window = MainWindow()
-    qtbot.addWidget(window, before_close_func=lambda widget: widget.traces.clear())
+    qtbot.addWidget(
+        window,
+        before_close_func=lambda widget: setattr(
+            widget, "saved_signature", widget.project_signature()
+        ),
+    )
     window.resize(1440, 1000)
     window.show()
     trace, baseline, recipe, _truth = overlap_fixture("Right tail")

@@ -2,7 +2,7 @@
 
 Implemented for single, applied baseline-corrected traces. Fitted components are
 mathematical models; counts, areas and retention times do not establish chemical
-identity. Results and accepted history remain in memory for this session.
+identity. Results and accepted history can be saved in portable projects.
 
 ## Workflow
 1. Import sampled data and **apply** a reviewed baseline. For broad overlapping
@@ -97,9 +97,9 @@ component labels, not persistent compound assignments.
 
 Metadata records source hash, corrected-baseline fingerprint, units, original
 guesses/bounds/locks/model/loss/window, final parameters, multistart seed/settings,
-values, objective cost/noise scale, diagnostics, timestamp and algorithm/library versions. Saving projects,
-exporting tables/figures, shared parameter constraints, instrument-specific shape
-validation and bootstrap/profile-likelihood uncertainties remain future work.
+values, objective cost/noise scale, diagnostics, timestamp and algorithm/library versions. Projects and figure/table export are implemented; see WORKFLOWS.md. Shared parameter
+constraints, instrument-specific validation and bootstrap/profile-likelihood
+uncertainties remain future work.
 
 ## Validation
 

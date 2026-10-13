@@ -152,7 +152,12 @@ def test_missing_signal_policy_recovers_import_without_bridging_gaps(qtbot, qapp
     assert list(dialog.trace.gap_after) == [True, False]
     assert dict(dialog.trace.import_settings)["omitted_signal_lines"] == "3"
     window = MainWindow()
-    qtbot.addWidget(window, before_close_func=lambda widget: widget.traces.clear())
+    qtbot.addWidget(
+        window,
+        before_close_func=lambda widget: setattr(
+            widget, "saved_signature", widget.project_signature()
+        ),
+    )
     window.add_trace(dialog.trace)
     np.testing.assert_array_equal(window.curve.opts["connect"], [False, True, True])
     np.testing.assert_array_equal(window.curve.xData, [0, 2, 3])

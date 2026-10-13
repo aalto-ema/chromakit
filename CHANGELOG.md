@@ -14,5 +14,16 @@ Initial public source preparation; no packaged stable release has been published
 - Synthetic examples, scientific documentation and numerical/Qt tests.
 - MIT license, contributor/security guidance, issue/PR templates and public CI.
 
-Project persistence, native vendor readers, built-in image digitization, compound
-labels, calibration, batch processing and figure/table exports remain planned.
+### Workflow expansion
+
+- Portable projects with embedded data/images, accepted results/drafts/history and atomic saves.
+- PNG/TIFF/PDF/SVG figures with dimensions/transparency/fonts and CSV/JSON results.
+- Editable compound labels with review state, placement and stale-assignment protection.
+- Calibrated PNG/JPEG/TIFF image tracing with masks, manual corrections and explicit gaps.
+- Optional bounded gap interpolation and isolated-spike repair with live original/prepared
+  comparison and preserved original pixel points/settings for reversible image refinement.
+- External-standard linear calibration, weighting/intercept options and ranged concentrations.
+- Text batches with reusable active recipes, individual outcomes and cancellation.
+- Project/CSV/JSON compound libraries with reviewed ambiguous retention matches.
+
+Native vendor readers and advanced workflow refinements remain planned.
