@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chromakit"
+version = "0.1.0"
+description = "A PySide6 desktop workspace for chromatogram analysis"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["chromatography", "HPLC", "baseline", "peak-fitting", "PySide6"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "PySide6>=6.6,<7", "numpy>=1.26,<3", "pyqtgraph>=0.13.7,<0.15",
+    "scipy>=1.12,<2", "pybaselines>=1.2,<2",
+]
+
+[project.optional-dependencies]
+analysis = ["matplotlib>=3.8,<4"]
+dev = ["pytest>=8,<10", "pytest-qt>=4.4,<5", "ruff>=0.9,<1", "build>=1.2,<2"]
+
+[project.urls]
+Repository = "https://github.com/aalto-ema/chromakit"
+Issues = "https://github.com/aalto-ema/chromakit/issues"
+Changelog = "https://github.com/aalto-ema/chromakit/blob/main/CHANGELOG.md"
+
+[project.scripts]
+chromakit = "chromakit.app:main"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+qt_api = "pyside6"

@@ -1,0 +1,45 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.DS_Store
+.env
+.env.*
+!.env.example
+data/private/
+exports/
+*.log
+
+# Local editor/agent configuration and credentials
+.idea/
+.vscode/
+.agents/
+.codex/
+.venv-*/
+venv/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Keep experimental data and images outside public fixtures.
+# examples/ contains only the documented synthetic fixtures.
+data/
+!data/.gitkeep
+outputs/
+screenshots/
+*.chromakit
+*.chromakit.*
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+*.tmp
+Thumbs.db
+Desktop.ini

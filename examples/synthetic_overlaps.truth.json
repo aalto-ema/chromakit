@@ -1,0 +1,58 @@
+{
+  "description": "Synthetic examples inspired by broad overlaps and tails in supplied figures; no image digitization or chemical assignment.",
+  "time_unit": "min",
+  "signal_unit": "mAU",
+  "baseline": {
+    "intercept_at_10_5": 0.25,
+    "slope": 0.025
+  },
+  "noise": "0.005*sin(57*time) + 0.003*cos(91*time), deterministic",
+  "channels": {
+    "Synthetic red": [
+      {
+        "model": "Right tail",
+        "area": 3.0,
+        "center": 11.35,
+        "sigma": 0.25,
+        "tau": 0.4
+      },
+      {
+        "model": "Right tail",
+        "area": 1.8,
+        "center": 11.96,
+        "sigma": 0.075,
+        "tau": 0.17
+      },
+      {
+        "model": "Gaussian",
+        "area": 0.4,
+        "center": 12.84,
+        "sigma": 0.14,
+        "tau": 0.1
+      }
+    ],
+    "Synthetic blue": [
+      {
+        "model": "Right tail",
+        "area": 3.2,
+        "center": 11.2,
+        "sigma": 0.13,
+        "tau": 0.48
+      },
+      {
+        "model": "Right tail",
+        "area": 9.0,
+        "center": 11.75,
+        "sigma": 0.3,
+        "tau": 0.22
+      },
+      {
+        "model": "Gaussian",
+        "area": 0.4,
+        "center": 12.84,
+        "sigma": 0.14,
+        "tau": 0.1
+      }
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+name: Bug report
+description: Report a reproducible import, analysis or UI problem.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: Use synthetic examples. Public issues must not include private lab data or credentials. See SECURITY.md for vulnerabilities.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: For numerical results, include the units and how the expected value was established.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps and minimal reproduction
+      description: Include import mappings and analysis/fit settings. Attach only data you can publish.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python, ChromaKit version or commit, and relevant dependency versions.
+    validations:
+      required: true

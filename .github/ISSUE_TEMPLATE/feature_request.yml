@@ -1,0 +1,23 @@
+name: Feature request
+description: Propose an improvement to the chromatogram workflow.
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Workflow and problem
+      description: What are you trying to accomplish, and where does the current app fall short?
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Proposed behavior and acceptance criteria
+      description: Describe a useful result, with units and scientific assumptions where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Alternatives or permitted examples
+      description: Use synthetic or publicly licensed examples. Do not attach private laboratory data.

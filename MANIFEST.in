@@ -1,0 +1,17 @@
+include LICENSE README.md CONTRIBUTING.md SECURITY.md CHANGELOG.md AGENTS.md run_app.py
+include .gitignore .gitattributes .editorconfig
+recursive-include docs *.md
+recursive-include examples *.md *.csv *.json
+recursive-include tests *.py
+recursive-include scripts *.py
+prune .github
+prune .venv
+prune data
+prune outputs
+prune exports
+prune screenshots
+prune .agents
+prune .codex
+prune .pytest_cache
+prune .ruff_cache
+global-exclude *.py[cod] .DS_Store *.log .env .env.*
