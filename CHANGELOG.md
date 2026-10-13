@@ -27,3 +27,9 @@ Initial public source preparation; no packaged stable release has been published
 - Project/CSV/JSON compound libraries with reviewed ambiguous retention matches.
 
 Native vendor readers and advanced workflow refinements remain planned.
+
+### CI compatibility
+
+- Constrain PySide6 below 6.12 following a repeatable Linux/Python 3.11 interpreter
+  crash during post-test Qt cleanup with 6.12.0. Keep the full Python 3.11 test job
+  and normal process-exit checks enabled.

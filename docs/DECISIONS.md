@@ -102,3 +102,11 @@ next implementation slice, and promote confirmed answers into this document.
 - Projects embed sampled data and original digitization images for portability.
 - External-standard linear calibration: unweighted/1/x/1/x²; fitted or zero intercept.
 - Compound matching starts with editable names and retention windows plus manual review.
+
+## Qt compatibility constraint
+- PySide6 is temporarily constrained to `>=6.6,<6.12`. With 6.12.0, the Linux/Python
+  3.11 CI job twice passed all 150 tests but then aborted in garbage collection with
+  `none_dealloc: deallocating None`. The same suite exits cleanly locally on macOS;
+  Python 3.13 CI jobs also pass. The binding version is a compatibility workaround,
+  not a proven upstream root cause. Reconsider the ceiling after a newer release
+  passes the full Linux/Python 3.11 suite including interpreter shutdown.
