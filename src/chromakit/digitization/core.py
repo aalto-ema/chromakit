@@ -9,6 +9,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageOps
 
+from chromakit.digitization.geometry import transform_image
+from chromakit.digitization.quality import path_quality
 from chromakit.digitization.repair import repair_pixels, validate_cleanup
 from chromakit.domain import TIME_SCALES, Trace, readonly_array
 from chromakit.importers.text import ImportCancelled, ImportProblem
@@ -38,9 +40,12 @@ class DigitizeRecipe:
     spike_window: int = 11
     spike_threshold: float = 4.0
     spike_minimum: float = 6.0
+    deskew: float = 0.0
+    perspective: tuple[tuple[float, float], ...] = ()
+    rectified_size: tuple[int, int] = (0, 0)
 
 
-def image_pixels(data, rotation=0):
+def image_pixels(data, rotation=0, deskew=0.0, perspective=(), rectified_size=(0, 0)):
     if len(data) > 64 * 1024 * 1024:
         raise ImportProblem("Use an image smaller than 64 MiB.")
     try:
@@ -55,7 +60,8 @@ def image_pixels(data, rotation=0):
     image = Image.alpha_composite(Image.new("RGBA", image.size, "white"), image).convert("RGB")
     if rotation not in {0, 90, 180, 270}:
         raise ImportProblem("Choose a right-angle image rotation.")
-    return np.asarray(image.rotate(rotation, expand=True))
+    oriented = image.rotate(rotation, expand=True)
+    return np.asarray(transform_image(oriented, deskew, perspective, rectified_size))
 
 
 def validate(recipe, shape):
@@ -106,7 +112,9 @@ def validate(recipe, shape):
 
 
 def trace_pixels(data, recipe, cancel=lambda: False):
-    pixels = image_pixels(data, recipe.rotation)
+    pixels = image_pixels(
+        data, recipe.rotation, recipe.deskew, recipe.perspective, recipe.rectified_size
+    )
     validate(recipe, pixels.shape)
     left, top, right, bottom = recipe.crop
     selected = (
@@ -143,7 +151,9 @@ def trace_pixels(data, recipe, cancel=lambda: False):
 
 
 def create_trace(data, path, recipe, points, name="Digitized chromatogram", manual=False):
-    pixels = image_pixels(data, recipe.rotation)
+    pixels = image_pixels(
+        data, recipe.rotation, recipe.deskew, recipe.perspective, recipe.rectified_size
+    )
     validate(recipe, pixels.shape)
     array = np.asarray(points, dtype=float)
     if array.ndim != 2 or array.shape[1] != 2 or len(array) < 2 or not np.isfinite(array).all():
@@ -161,6 +171,7 @@ def create_trace(data, path, recipe, points, name="Digitized chromatogram", manu
             "Pixel x positions must increase without duplicates; edit/reorder the point table."
         )
     original = array.copy()
+    quality = path_quality(pixels, recipe, points)
     recovery = repair_pixels(points, recipe)
     array = np.asarray(recovery.points)
     time = recipe.time1 + (array[:, 0] - recipe.x1) * (recipe.time2 - recipe.time1) / (
@@ -181,13 +192,15 @@ def create_trace(data, path, recipe, points, name="Digitized chromatogram", manu
         "original_pixel_points": original.tolist(),
         "interpolated_pixel_x": list(recovery.interpolated_x),
         "spike_corrected_pixel_x": list(recovery.corrected_x),
+        "quality_flags": quality,
         "manual_overrides": manual,
         "image_sha256": digest,
         "original_image": data,
         "source_filename": Path(path).name,
+        "trace_name": name,
         "time_per_pixel": abs((recipe.time2 - recipe.time1) / (recipe.x2 - recipe.x1)),
         "signal_per_pixel": abs((recipe.signal2 - recipe.signal1) / (recipe.y2 - recipe.y1)),
-        "method_version": "image-v2",
+        "method_version": "image-v3",
     }
     trace = Trace(
         name,
@@ -209,6 +222,19 @@ def create_trace(data, path, recipe, points, name="Digitized chromatogram", manu
             "before quantification.",
             *(
                 (
+                    "GEOMETRY-CORRECTED: image pixels were resampled; coordinate resolution "
+                    "does not represent independent instrument observations.",
+                )
+                if recipe.deskew or recipe.perspective
+                else ()
+            ),
+            *(
+                (f"IMAGE REVIEW: {len(quality)} flagged columns; inspect path and image.",)
+                if quality
+                else ()
+            ),
+            *(
+                (
                     f"INTERPOLATED: {len(recovery.interpolated_x)} missing pixel columns; "
                     "linear estimates are not observed image samples.",
                 )
@@ -226,7 +252,7 @@ def create_trace(data, path, recipe, points, name="Digitized chromatogram", manu
         ),
         readonly_array(gaps, np.bool_),
         (
-            ("reader_version", "image-v2"),
+            ("reader_version", "image-v3"),
             ("recipe", json.dumps(settings, sort_keys=True)),
             ("manual_overrides", str(manual)),
             ("pixel_points_sha256", hashlib.sha256(original.tobytes()).hexdigest()),

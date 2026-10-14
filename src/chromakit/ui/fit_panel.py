@@ -128,6 +128,9 @@ class FitPanel(QWidget):
         )
         self.compare_button.clicked.connect(self.compare_counts)
         layout.addWidget(self.compare_button)
+        self.stability_button = QPushButton("Analyze fit stability…")
+        self.stability_button.clicked.connect(self.open_stability)
+        layout.addWidget(self.stability_button)
         self.status = QLabel("Apply a baseline to begin.")
         self.status.setWordWrap(True)
         layout.addWidget(self.status)
@@ -803,6 +806,14 @@ class FitPanel(QWidget):
             self.state.undo(redo)
             self.set_state(self.state)
             self.changed.emit()
+
+    def open_stability(self):
+        from chromakit.ui.stability_dialog import StabilityDialog
+
+        if self.state and self.state.valid(self.state.result):
+            StabilityDialog(self.window(), self.state).exec()
+        else:
+            self.status.setText("Accept a current fit before analyzing its stability.")
 
     def shutdown(self):
         self.timer.stop()

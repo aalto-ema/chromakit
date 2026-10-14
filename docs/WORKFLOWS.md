@@ -73,6 +73,14 @@ plot in pixel coordinates, avoiding axes/legends. Enter two known values per axi
 and pick their pixel positions with the x1/x2/y1/y2 buttons. Explicit time and signal
 units are required before a trace can be created. Orientation changes reset calibration.
 
+For tilted pictures, set **Deskew** between −45° and +45° and **Apply geometry**.
+Then, for perspective distortion, use **Show deskewed source**, pick the plot's four
+corners in top-left, top-right, bottom-right, bottom-left order, enable **Rectify four
+plot corners**, choose output pixel dimensions, and apply. Only convex quadrilaterals
+are accepted. Calibrate axes on the corrected image afterwards; geometry changes
+reset points, masks and axis anchors. Bicubic image resampling is recorded and
+flagged: output pixel spacing does not imply independent sampling precision.
+
 Pick a trace color, adjust tolerance and add optional rectangular exclusion masks;
 **Trace selected color** follows matching pixels using continuity. Inspect the green
 source overlay, edit/delete pixel points or add manual points by clicking. A changed
@@ -96,6 +104,18 @@ Both repair options start off. The live pixel preview distinguishes original poi
 the prepared trace, interpolated squares and replaced-spike crosses. These are
 analytical repairs applied to the created data, not display-only smoothing.
 
+Use **Review next uncertain image column** to inspect amber markers for mismatched
+color, abrupt jumps, nearby competing paths, thick/crossing strokes and missing
+intervals. These are heuristics, not statistical confidence bands; an unflagged path
+can still be wrong. Edit the point table or adjust masks/color and trace again.
+
+To recover multiple colored traces, name and **Queue this trace and recover another
+color**, then pick/trace/review the next color using the shared calibrated image.
+**Import queued traces** adds up to eight reviewed channels together; **Create
+calibrated trace** adds the current path as well as already queued traces. Colors
+are traced separately so crossings remain reviewable rather than automatically
+assigned chemical identities.
+
 Create the calibrated trace and process it with the ordinary baseline/peak/fit tools.
 File → **Review/edit recovered image** reopens the embedded source/calibration even
 when the original file is unavailable. Creating a refined trace preserves the original
@@ -108,8 +128,9 @@ prior estimates. Older projects without repair settings retain their original be
 distinguish image recovery from instrument sampling. Images: up to 64 MiB compressed,
 25 million pixels and 20,000 pixels on a side. Color tracing can follow the wrong line
 at intersections or legends; masks/manual review are essential. There is no OCR,
-perspective correction, arbitrary-angle deskew, logarithmic axis calibration or
-simultaneous multi-trace recovery. Recover each trace separately.
+logarithmic axis calibration or automatic simultaneous path separation. Multi-color
+recovery queues individually reviewed paths. Deskew, perspective correction and
+quality flags are available as described above.
 
 ## 5. External-standard calibration and concentrations
 
@@ -188,3 +209,52 @@ weights, exclusions and range; batch isolation/cancellation; and Qt interactions
 Native macOS dialogs and populated workflows are visually checked with synthetic
 fixtures. Native Windows and representative permitted laboratory data still require
 validation. The CI matrix is maintained, but new hosted checks require a later push.
+
+## 8. Compare chromatograms
+
+Analysis → **Compare chromatograms** overlays 2–30 checked project traces. Double-click
+color swatches to change colors, choose raw or applied corrected signals, and choose
+one checked trace as the reference. Time coordinates convert to the selected known
+unit; unknown-coordinate traces must be compared separately. Unnormalized signals
+must share a signal unit. Normalization is explicit: **Peak magnitude** divides by
+maximum absolute signal; **Absolute area** divides by the sum of absolute trapezoidal
+areas within continuous segments. This changes comparison presentation only.
+
+The lower plot is each trace minus the reference on that trace's own observed time
+coordinates. Linear reference interpolation is confined to its observed continuous
+segments; no extrapolation or interpolation across gaps/excluded artifacts occurs.
+Differences between missing or incompatible regions remain unavailable. No retention
+alignment is performed. Original arrays, integrations, fits and calibrations stay
+unchanged. Selection, colors and comparison settings are saved in projects; comparison
+arrays are recalculated when reopened. Figure export supports PNG/TIFF/PDF/SVG with
+explicit dimensions/DPI/transparency; CSV includes per-trace normalization divisors,
+source identity, reference identity and break flags. This comparison is not a new
+analytical trace or a replacement for quantitative results.
+
+## 9. Fit stability across starting guesses
+
+After accepting a current fit, open Fit peaks → **Analyze fit stability…**. Choose
+3–30 starts, a starting-guess perturbation (0.05–2), seed and comparable-objective
+percentage tolerance. The first attempt uses the accepted parameters; others perturb
+free parameters within the same bounds. Shapes, component count, signed area bounds
+and locks remain fixed. Each attempt is a single bounded fit, not a nested multistart
+search. Work runs in a cancellable worker with progress; cancellation does not save
+an incomplete report or replace the accepted fit.
+
+Review each attempt's convergence, objective and RMSE and click a row for components
+and residuals. Converged fits within the chosen relative tolerance of the best
+converged objective are comparable, with a small observed-signal energy floor to
+avoid treating numerical noise in nearly exact fits as different solutions. Full
+and window area ranges/medians and retention-time ranges are recorded; the table
+shows accepted areas and full/window area spread among comparable attempts. Fewer
+than three comparable attempts is inconclusive; >15% full-area range is flagged.
+
+Matching can reorder components only when their shape, bounds and locks are
+interchangeable; otherwise IDs retain their constrained meaning. Near-coincident
+components and ordering swaps are flagged. Area spread is sensitivity to starts,
+not a confidence interval or proof of chemical identity. This excludes uncertainty
+from baseline, sampling, model count and image recovery, and does not guarantee a
+global solution. Reports/settings/starting and fitted parameters persist in projects
+and export as JSON or CSV. Reprocessing the baseline or accepting a different fit
+makes the saved report inapplicable until rerun; opening only restores reports for
+the exact accepted fit fingerprint.

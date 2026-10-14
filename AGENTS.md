@@ -14,7 +14,9 @@ editable bounds, result tables, and per-trace history. Constrained deconvolution
 includes Gaussian/EMG components, live residuals, editable
 bounds/locks, alternative counts, diagnostics and accepted history. Portable projects, figure/result exports, compound labels, calibrated image recovery,
 external-standard calibration, batch text processing and compound libraries are implemented.
-Native vendor formats remain planned. Read docs/WORKFLOWS.md for current boundaries. Read README.md,
+Comparison overlays, image deskew/perspective/multi-color recovery, and repeated-start
+fit stability reports are also implemented. Native vendor formats remain planned.
+Read docs/WORKFLOWS.md for current boundaries. Read README.md,
 docs/PRODUCT.md, docs/ARCHITECTURE.md, and docs/ROADMAP.md before substantial work.
 Track unanswered questions in docs/DECISIONS.md. User decisions override provisional defaults.
 Read docs/BASELINE.md before modifying baseline methods or their UI. Preserve the

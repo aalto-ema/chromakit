@@ -95,7 +95,7 @@ def test_digitized_calibration_recovery_gaps_and_original_provenance():
     assert trace.signal.max() == pytest.approx(6)
     assert record["original_image"] == data
     assert record["time_per_pixel"] == pytest.approx(0.1)
-    assert dict(trace.import_settings)["reader_version"] == "image-v2"
+    assert dict(trace.import_settings)["reader_version"] == "image-v3"
     with pytest.raises(ImportProblem, match="calibrated"):
         trace_pixels(data, replace(recipe, time_unit="unknown"))
     reversed_trace, _ = create_trace(

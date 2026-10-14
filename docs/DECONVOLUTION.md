@@ -47,7 +47,7 @@ used as quantitative input. Try `examples/synthetic_overlaps.csv`, an explicitly
 synthetic three-component overlap with a broad shoulder, central tailed peak and
 small late bump. The red/blue signal columns provide two shapes; its companion truth JSON describes
 all model parameters. Recovering
-observations from pictures still requires the planned calibrated digitization flow.
+observations from pictures requires the calibrated digitization flow in WORKFLOWS.md.
 
 ## Numerical model and diagnostics
 
@@ -117,3 +117,10 @@ and permitted real lab examples remain unverified.
 
 Primary mathematical references: [SciPy least_squares](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html)
 and [SciPy exponentially modified normal](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.exponnorm.html).
+
+## Repeated-start stability
+After accepting a current fit, use **Analyze fit stability…** for repeated-start
+sensitivity, component-area ranges, per-attempt curves/residuals and saved/exportable
+reports. Matching respects shape/bound/lock constraints, and flags near-coincident
+components. This supplements covariance and count comparisons; it is not a confidence
+interval or identity test. See WORKFLOWS.md for criteria and limits.

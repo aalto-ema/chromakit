@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QGraphicsView,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QScrollArea,
     QTableWidget,
@@ -24,6 +25,7 @@ from PySide6.QtWidgets import (
 )
 
 from chromakit.digitization.core import DigitizeRecipe, create_trace, image_pixels, trace_pixels
+from chromakit.digitization.quality import path_quality
 from chromakit.digitization.repair import repair_pixels
 from chromakit.ui.operation_tasks import OperationController
 from chromakit.ui.peak_panel import spin
@@ -65,6 +67,10 @@ class DigitizeDialog(QDialog):
         self.record = None
         self.valid_points = True
         self.extracted_recipe = None
+        self.applied_geometry = (0.0, (), (0, 0))
+        self.traces = []
+        self.records = []
+        self.quality_flags = []
         self.overlays = []
         self.controller = OperationController(self)
         self.controller.succeeded.connect(self.ready)
@@ -72,6 +78,9 @@ class DigitizeDialog(QDialog):
         self.preview_controller = OperationController(self)
         self.preview_controller.succeeded.connect(self.preview_ready)
         self.preview_controller.failed.connect(lambda error: self.message.setText(error))
+        self.geometry_controller = OperationController(self)
+        self.geometry_controller.succeeded.connect(self.geometry_ready)
+        self.geometry_controller.failed.connect(lambda error: self.message.setText(error))
         self.recovery = None
         root = QHBoxLayout(self)
         self.scene = QGraphicsScene()
@@ -98,7 +107,7 @@ class DigitizeDialog(QDialog):
         scroll.setWidget(panel)
         root.addWidget(scroll, 1)
         guide = QLabel(
-            "1  Orient and crop the plot.\n"
+            "1  Orient and crop the plot. Apply deskew first, then pick perspective corners.\n"
             "2  Set two known values on each axis; pick their pixel positions.\n"
             "3  Pick the trace color, preview and correct pixel points.\n"
             "4  Confirm units, then create a trace. "
@@ -111,6 +120,37 @@ class DigitizeDialog(QDialog):
         controls.addWidget(QLabel("Rotate image (degrees counter-clockwise)"))
         controls.addWidget(self.rotation)
         self.rotation.currentTextChanged.connect(self.reset_image)
+        controls.addWidget(QLabel("Geometry correction · apply before axis calibration"))
+        geometry_form = QFormLayout()
+        self.deskew = spin(-45, 45, 0)
+        geometry_form.addRow("Deskew (° counter-clockwise)", self.deskew)
+        self.perspective = QCheckBox("Rectify four plot corners")
+        geometry_form.addRow(self.perspective)
+        self.corners = QTableWidget(4, 2)
+        self.corners.setHorizontalHeaderLabels(["Pixel x", "Pixel y"])
+        self.corners.setVerticalHeaderLabels(
+            ["Top left", "Top right", "Bottom right", "Bottom left"]
+        )
+        self.corners.setMaximumHeight(150)
+        geometry_form.addRow(self.corners)
+        for index, title in enumerate(["top-left", "top-right", "bottom-right", "bottom-left"]):
+            pick_corner = QPushButton("Pick " + title + " corner")
+            pick_corner.clicked.connect(
+                lambda _=False, index=index: self.set_pick(f"corner{index}")
+            )
+            geometry_form.addRow(pick_corner)
+        self.rectified_width, self.rectified_height = spin(2, 20000, 1000), spin(2, 20000, 600)
+        self.rectified_width.setDecimals(0)
+        self.rectified_height.setDecimals(0)
+        geometry_form.addRow("Rectified width (pixels)", self.rectified_width)
+        geometry_form.addRow("Rectified height (pixels)", self.rectified_height)
+        apply_geometry = QPushButton("Apply geometry and reset calibration")
+        apply_geometry.clicked.connect(self.apply_geometry)
+        geometry_form.addRow(apply_geometry)
+        reset_perspective = QPushButton("Show deskewed source to pick corners")
+        reset_perspective.clicked.connect(self.clear_perspective)
+        geometry_form.addRow(reset_perspective)
+        controls.addLayout(geometry_form)
         self.axes = {}
         form = QFormLayout()
         form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
@@ -204,6 +244,21 @@ class DigitizeDialog(QDialog):
         )
         note.setWordWrap(True)
         controls.addWidget(note)
+        self.review_flags = QPushButton("Review next uncertain image column")
+        self.review_flags.clicked.connect(self.review_uncertain)
+        controls.addWidget(self.review_flags)
+        self.trace_name = QLineEdit("Digitized " + self.path.stem)
+        controls.addWidget(QLabel("Recovered trace name"))
+        controls.addWidget(self.trace_name)
+        self.queued = QLabel("No traces queued. Recover colors separately, sharing this image.")
+        self.queued.setWordWrap(True)
+        controls.addWidget(self.queued)
+        add_channel = QPushButton("Queue this trace and recover another color")
+        add_channel.clicked.connect(self.queue_trace)
+        controls.addWidget(add_channel)
+        finish_channels = QPushButton("Import queued traces")
+        finish_channels.clicked.connect(self.finish_collection)
+        controls.addWidget(finish_channels)
         create = QPushButton("Create calibrated trace")
         create.setObjectName("primary")
         create.clicked.connect(self.create)
@@ -226,7 +281,24 @@ class DigitizeDialog(QDialog):
 
     def restore_record(self, record):
         values = record["recipe"]
+        self.trace_name.setText(record.get("trace_name", self.trace_name.text()))
         self.rotation.setCurrentText(str(values["rotation"]))
+        self.applied_geometry = (
+            values.get("deskew", 0.0),
+            tuple(tuple(c) for c in values.get("perspective", ())),
+            tuple(values.get("rectified_size", (0, 0))),
+        )
+        self.deskew.setValue(self.applied_geometry[0])
+        self.perspective.setChecked(bool(self.applied_geometry[1]))
+        if self.applied_geometry[1]:
+            for row, corner in enumerate(self.applied_geometry[1]):
+                for col, value in enumerate(corner):
+                    self.corners.setItem(row, col, QTableWidgetItem(str(value)))
+            self.rectified_width.setValue(self.applied_geometry[2][0])
+            self.rectified_height.setValue(self.applied_geometry[2][1])
+        self.install_image(
+            image_pixels(self.data, int(self.rotation.currentText()), *self.applied_geometry)
+        )
         for name, field in self.axes.items():
             field.setValue(values[name])
         for field, value in zip(self.crop, values["crop"], strict=True):
@@ -250,6 +322,7 @@ class DigitizeDialog(QDialog):
             tuple(point) for point in record.get("original_pixel_points", record["pixel_points"])
         ]
         self.manual = record["manual_overrides"]
+        self.quality_flags = record.get("quality_flags", [])
         self.extracted_recipe = self.recipe()
         self.populate()
         self.message.setText(
@@ -258,11 +331,19 @@ class DigitizeDialog(QDialog):
         )
 
     def reset_image(self, *_):
+        self.geometry_controller.cancel()
+        self.applied_geometry = (0.0, (), (0, 0))
+        self.deskew.setValue(0)
+        self.perspective.setChecked(False)
+        self.corners.clearContents()
+        self.install_image(image_pixels(self.data, int(self.rotation.currentText())))
+
+    def install_image(self, pixels):
         self.controller.cancel()
         self.preview_controller.cancel()
         self.recovery = None
         self.preview_plot.clear()
-        self.pixels = image_pixels(self.data, int(self.rotation.currentText()))
+        self.pixels = pixels
         height, width = self.pixels.shape[:2]
         image = QImage(
             self.pixels.data, width, height, 3 * width, QImage.Format.Format_RGB888
@@ -275,12 +356,130 @@ class DigitizeDialog(QDialog):
         for field, value in zip(self.crop, [0, 0, width, height], strict=True):
             field.setValue(value)
         self.points = []
+        self.quality_flags = []
         self.seed_y = None
         for field in self.axes.values():
             field.setValue(0)
         self.masks.setRowCount(0)
         self.table.setRowCount(0)
         self.message.setText("Set axis calibration for this image orientation.")
+
+    def apply_geometry(self):
+        try:
+            corners = (
+                tuple(
+                    tuple(float(self.corners.item(r, c).text()) for c in range(2)) for r in range(4)
+                )
+                if self.perspective.isChecked()
+                else ()
+            )
+            geometry = (
+                self.deskew.value(),
+                corners,
+                (int(self.rectified_width.value()), int(self.rectified_height.value()))
+                if corners
+                else (0, 0),
+            )
+            rotation = int(self.rotation.currentText())
+            self.controller.cancel()
+            self.preview_controller.cancel()
+            self.geometry_controller.request_operation(
+                lambda cancel: (image_pixels(self.data, rotation, *geometry), geometry)
+            )
+            self.message.setText("Correcting image geometry… Calibration will reset.")
+        except (ValueError, AttributeError) as error:
+            self.message.setText("Complete four source corners first: " + str(error))
+
+    def geometry_ready(self, result):
+        pixels, self.applied_geometry = result
+        self.install_image(pixels)
+        self.quality_flags = []
+        self.message.setText("Geometry applied. Calibrate axes on the corrected image.")
+
+    def clear_perspective(self):
+        self.perspective.setChecked(False)
+        self.apply_geometry()
+
+    def ensure_current_geometry(self):
+        if self.geometry_controller.task is not None:
+            raise ValueError("Wait for image geometry correction to finish.")
+        if self.deskew.value() != self.applied_geometry[0] or self.perspective.isChecked() != bool(
+            self.applied_geometry[1]
+        ):
+            raise ValueError("Apply the changed geometry before tracing or creating a trace.")
+        if self.perspective.isChecked():
+            corners = tuple(
+                tuple(float(self.corners.item(r, c).text()) for c in range(2)) for r in range(4)
+            )
+            size = (int(self.rectified_width.value()), int(self.rectified_height.value()))
+            if corners != self.applied_geometry[1] or size != self.applied_geometry[2]:
+                raise ValueError("Apply the changed perspective corners/size before tracing.")
+
+    def queue_trace(self):
+        if len(self.traces) >= 8:
+            self.message.setText("Recover up to eight traces in one collection.")
+            return
+        try:
+            if not self.valid_points:
+                raise ValueError("Fix invalid point cells first.")
+            self.ensure_current_geometry()
+            recipe = self.recipe()
+            if (
+                self.extracted_recipe
+                and not self.manual
+                and any(
+                    getattr(recipe, key) != getattr(self.extracted_recipe, key)
+                    for key in ("color", "tolerance", "crop", "rotation", "masks", "seed_y")
+                )
+            ):
+                raise ValueError("Tracing settings changed. Trace the selected color again.")
+            trace, record = create_trace(
+                self.data,
+                self.path,
+                recipe,
+                self.points,
+                self.trace_name.text().strip() or f"Image trace {len(self.traces) + 1}",
+                self.manual,
+            )
+        except (ValueError, AttributeError) as error:
+            self.message.setText(str(error))
+            return
+        self.traces.append(trace)
+        self.records.append(record)
+        self.queued.setText("Queued: " + ", ".join(t.name for t in self.traces))
+        self.controller.cancel()
+        self.points = []
+        self.quality_flags = []
+        self.seed_y = None
+        self.populate()
+        self.trace_name.setText(f"Image trace {len(self.traces) + 1}")
+        self.message.setText(
+            "Trace queued. Pick the next color and trace it, or import the collection."
+        )
+
+    def finish_collection(self):
+        if not self.traces:
+            self.message.setText("Queue at least one reviewed trace first.")
+            return
+        self.accept()
+
+    def review_uncertain(self):
+        if not self.quality_flags or not self.points:
+            self.message.setText(
+                "No automatic flags. This does not prove the recovered path is correct."
+            )
+            return
+        index = getattr(self, "quality_index", -1) + 1
+        self.quality_index = index % len(self.quality_flags)
+        flag = self.quality_flags[self.quality_index]
+        self.view.centerOn(flag["x"], flag["y"])
+        row = min(range(len(self.points)), key=lambda i: abs(self.points[i][0] - flag["x"]))
+        self.table.selectRow(row)
+        self.table.scrollToItem(self.table.item(row, 0))
+        self.message.setText(
+            f"Review {self.quality_index + 1}/{len(self.quality_flags)} · "
+            f"column {flag['x']:g}: " + "; ".join(flag["reasons"])
+        )
 
     def set_pick(self, name):
         self.pick = name
@@ -291,7 +490,15 @@ class DigitizeDialog(QDialog):
     def picked(self, x, y):
         if not self.pick or not 0 <= x < self.pixels.shape[1] or not 0 <= y < self.pixels.shape[0]:
             return
-        if self.pick in self.axes:
+        if self.pick.startswith("corner"):
+            if self.applied_geometry[1]:
+                self.message.setText("Show deskewed source before picking perspective corners.")
+                self.pick = None
+                return
+            row = int(self.pick[-1])
+            self.corners.setItem(row, 0, QTableWidgetItem(str(x)))
+            self.corners.setItem(row, 1, QTableWidgetItem(str(y)))
+        elif self.pick in self.axes:
             self.axes[self.pick].setValue(x if self.pick.startswith("x") else y)
         elif self.pick == "color":
             self.color = tuple(int(v) for v in self.pixels[int(y), int(x)])
@@ -326,21 +533,29 @@ class DigitizeDialog(QDialog):
             spike_window=int(self.spike_window.currentText()),
             spike_threshold=self.spike_threshold.value(),
             spike_minimum=self.spike_minimum.value(),
+            deskew=self.applied_geometry[0],
+            perspective=self.applied_geometry[1],
+            rectified_size=self.applied_geometry[2],
         )
 
     def extract(self):
         try:
+            self.ensure_current_geometry()
             recipe = self.recipe()
         except (ValueError, AttributeError) as error:
             self.message.setText("Complete all mask rectangle cells: " + str(error))
             return
-        self.controller.request_operation(
-            lambda cancel: (trace_pixels(self.data, recipe, cancel), recipe)
-        )
+        pixels = self.pixels
+
+        def operation(cancel):
+            points = trace_pixels(self.data, recipe, cancel)
+            return points, recipe, path_quality(pixels, recipe, points, cancel)
+
+        self.controller.request_operation(operation)
         self.message.setText("Tracing color…")
 
     def ready(self, result):
-        points, self.extracted_recipe = result
+        points, self.extracted_recipe, self.quality_flags = result
         self.points = list(points)
         self.manual = False
         self.populate()
@@ -400,6 +615,7 @@ class DigitizeDialog(QDialog):
         try:
             if not self.valid_points:
                 raise ValueError("Fix invalid pixel table entries before creating a trace.")
+            self.ensure_current_geometry()
             recipe = self.recipe()
             if (
                 self.extracted_recipe
@@ -415,7 +631,7 @@ class DigitizeDialog(QDialog):
                 self.path,
                 self.recipe(),
                 self.points,
-                "Digitized " + self.path.stem,
+                self.trace_name.text().strip() or "Digitized " + self.path.stem,
                 self.manual,
             )
         except (ValueError, AttributeError) as error:
@@ -434,11 +650,17 @@ class DigitizeDialog(QDialog):
         except (ValueError, AttributeError):
             return
         points = tuple(self.points)
+        pixels = self.pixels
         self.preview_controller.request_operation(
-            lambda cancel: repair_pixels(points, recipe, cancel)
+            lambda cancel: (
+                repair_pixels(points, recipe, cancel),
+                path_quality(pixels, recipe, points, cancel),
+            )
         )
 
-    def preview_ready(self, recovery):
+    def preview_ready(self, result):
+        recovery, self.quality_flags = result
+        self.draw_points()
         self.recovery = recovery
         original = np.asarray(self.points)
         prepared = np.asarray(recovery.points)
@@ -476,10 +698,16 @@ class DigitizeDialog(QDialog):
         self.message.setText(
             f"{len(self.points)} original points → {len(recovery.points)} prepared points · "
             f"{len(recovery.interpolated_x)} interpolated · "
-            f"{len(recovery.corrected_x)} spikes replaced. Inspect before creating."
+            f"{len(recovery.corrected_x)} spikes replaced · "
+            f"{len(self.quality_flags)} columns need review. Inspect before creating."
         )
+        for flag in self.quality_flags[:: max(1, len(self.quality_flags) // 1000)]:
+            self.overlays.append(
+                self.scene.addRect(flag["x"] - 2, flag["y"] - 2, 4, 4, QPen(QColor("#D79622")))
+            )
 
     def done(self, result):
         self.controller.shutdown()
         self.preview_controller.shutdown()
+        self.geometry_controller.shutdown()
         super().done(result)

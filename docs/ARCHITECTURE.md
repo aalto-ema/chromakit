@@ -119,3 +119,10 @@ identity and layout; `digitization/` calibrates/traces images with preserved gap
 provides per-file outcomes; `compounds/` validates libraries and ambiguous matches.
 Feature metadata lives in project extras keyed by stable trace/compound IDs; worker
 previews and transient caches remain outside the saved session. See WORKFLOWS.md.
+
+`analysis/comparison.py` builds read-only overlays and segment-confined reference
+differences. `analysis/stability.py` evaluates perturbed starts under accepted
+constraints and stores scalar reports keyed to exact fit/baseline fingerprints.
+`digitization/geometry.py` records image rectification; `quality.py` flags heuristic
+pixel-path concerns. Modal review dialogs share cancellable generation guards and
+persist scientific choices separately from worker caches.

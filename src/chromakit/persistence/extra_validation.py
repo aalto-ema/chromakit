@@ -3,6 +3,7 @@
 import math
 
 from chromakit.analysis.calibration import CalibrationPoint, CalibrationRecipe, CalibrationResult
+from chromakit.analysis.stability import validate_report
 from chromakit.compounds.library import Compound, validate
 from chromakit.digitization.core import DigitizeRecipe
 from chromakit.digitization.repair import validate_cleanup
@@ -42,6 +43,29 @@ def validate_labels(mapping):
 
 
 def validate_extras(extras, validate_record):
+    comparison = extras.get("comparison")
+    if comparison is not None:
+        if (
+            not isinstance(comparison, dict)
+            or not isinstance(comparison.get("selected"), list)
+            or len(comparison["selected"]) > 30
+            or not all(isinstance(i, str) for i in comparison["selected"])
+            or not isinstance(comparison.get("colors"), dict)
+            or not all(
+                isinstance(c, str)
+                and len(c) == 7
+                and c.startswith("#")
+                and all(ch in "0123456789abcdefABCDEF" for ch in c[1:])
+                for c in comparison["colors"].values()
+            )
+            or comparison.get("mode") not in {"Raw", "Corrected"}
+            or comparison.get("normalization") not in {"None", "Peak magnitude", "Absolute area"}
+            or comparison.get("time_unit") not in {"s", "min", "h", "unknown"}
+            or not isinstance(comparison.get("reference_id"), (str, type(None)))
+        ):
+            raise ImportProblem("Invalid saved comparison settings.")
+    for report in extras.get("fit_stability", {}).values():
+        validate_report(report)
     validate_labels(extras.get("labels", {}))
     for key in ("labels_undo", "labels_redo"):
         if not isinstance(extras.get(key, []), list):
@@ -97,6 +121,8 @@ def validate_extras(extras, validate_record):
             crop=tuple(recipe["crop"]),
             color=tuple(recipe["color"]),
             masks=tuple(tuple(mask) for mask in recipe["masks"]),
+            perspective=tuple(tuple(corner) for corner in recipe.get("perspective", ())),
+            rectified_size=tuple(recipe.get("rectified_size", (0, 0))),
         )
         digitization_recipe = DigitizeRecipe(**recipe)
         validate_record(digitization_recipe)

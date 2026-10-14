@@ -33,3 +33,12 @@ Native vendor readers and advanced workflow refinements remain planned.
 - Constrain PySide6 below 6.12 following a repeatable Linux/Python 3.11 interpreter
   crash during post-test Qt cleanup with 6.12.0. Keep the full Python 3.11 test job
   and normal process-exit checks enabled.
+
+### Comparison, image recovery and fit stability
+
+- Read-only raw/corrected overlays, colors, explicit normalization, gap-aware reference
+  differences, saved comparison settings and physical-size figure/CSV export.
+- Arbitrary deskew, four-corner perspective rectification, per-column recovery flags
+  and reviewed multi-color trace collections with preserved image/geometry provenance.
+- Repeated-start fit sensitivity with constraints/locks retained, matched component-area
+  ranges, per-attempt curves/residuals, cancellation and saved/exportable reports.

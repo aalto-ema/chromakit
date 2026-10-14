@@ -3,13 +3,15 @@
 Implemented: source-checkout launcher, reviewed text imports, baseline correction,
 measured peak integration, constrained deconvolution, portable project save/reopen,
 publication figure/result export, compound labels, calibrated image recovery,
-external-standard linear calibration, reviewed text batches and compound libraries.
+external-standard linear calibration, reviewed text batches and compound libraries,
+comparison overlays/differences, image deskew/perspective/multi-color recovery, and
+repeated-start fit stability.
 See [WORKFLOWS.md](WORKFLOWS.md) for exact supported behavior and validation limits.
 
 ## Next validation and refinements
 - Native Windows visual/interaction validation and representative permitted lab fixtures.
 - Vendor exchange/native format adapters with exact CDS versions and fixture evidence.
-- Image deskew/perspective/log axes, difficult crossings, multi-trace tracing and OCR review.
+- Image log axes, automatic separation of difficult crossings and OCR review.
 - Label collision avoidance and richer presentation presets; compound matching review refinements.
 - Expanded calibration QC, internal standards, uncertainty/LOD/LOQ with named validated methods.
 - Standalone reusable batch recipes, sample-role/standard metadata and unattended processing.

@@ -35,6 +35,7 @@ from chromakit.domain import Trace
 from chromakit.ui.baseline_panel import BaselinePanel
 from chromakit.ui.batch_dialog import BatchDialog
 from chromakit.ui.calibration_dialog import CalibrationDialog
+from chromakit.ui.comparison_dialog import ComparisonDialog
 from chromakit.ui.digitize_dialog import DigitizeDialog
 from chromakit.ui.export_dialog import ExportDialog
 from chromakit.ui.fit_panel import FitPanel
@@ -284,6 +285,9 @@ class MainWindow(ProjectActions, QMainWindow):
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
         analysis_menu = self.menuBar().addMenu("&Analysis")
+        comparison_action = QAction("Compare chromatograms…", self)
+        comparison_action.triggered.connect(lambda: ComparisonDialog(self).exec())
+        analysis_menu.addAction(comparison_action)
         calibration_action = QAction("External-standard calibration…", self)
         calibration_action.triggered.connect(lambda: CalibrationDialog(self).exec())
         analysis_menu.addAction(calibration_action)
@@ -635,9 +639,13 @@ class MainWindow(ProjectActions, QMainWindow):
             return
         try:
             dialog = DigitizeDialog(Path(record["source_filename"]), self, record=record)
-            if dialog.exec() == dialog.DialogCode.Accepted and dialog.trace:
-                self.project_extras.setdefault("digitizations", {})[dialog.trace.id] = dialog.record
-                self.add_trace(dialog.trace)
+            if dialog.exec() == dialog.DialogCode.Accepted:
+                recovered = list(zip(dialog.traces, dialog.records, strict=True))
+                if dialog.trace:
+                    recovered.append((dialog.trace, dialog.record))
+                for trace, image_record in recovered:
+                    self.project_extras.setdefault("digitizations", {})[trace.id] = image_record
+                    self.add_trace(trace)
                 self.project_changed()
         except (OSError, ValueError) as error:
             QMessageBox.warning(self, "Image review failed", str(error))
@@ -650,9 +658,13 @@ class MainWindow(ProjectActions, QMainWindow):
             return
         try:
             dialog = DigitizeDialog(Path(filename), self)
-            if dialog.exec() == dialog.DialogCode.Accepted and dialog.trace:
-                self.project_extras.setdefault("digitizations", {})[dialog.trace.id] = dialog.record
-                self.add_trace(dialog.trace)
+            if dialog.exec() == dialog.DialogCode.Accepted:
+                recovered = list(zip(dialog.traces, dialog.records, strict=True))
+                if dialog.trace:
+                    recovered.append((dialog.trace, dialog.record))
+                for trace, image_record in recovered:
+                    self.project_extras.setdefault("digitizations", {})[trace.id] = image_record
+                    self.add_trace(trace)
                 self.project_changed()
         except (OSError, ValueError) as error:
             QMessageBox.warning(self, "Image recovery failed", str(error))

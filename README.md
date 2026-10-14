@@ -112,12 +112,17 @@ and its truth parameters are in `examples/synthetic_overlaps.csv` and its JSON c
 
 ## Projects and the expanded workflow
 
+- **Analysis → Compare chromatograms**: color overlays, raw/corrected normalization,
+  gap-preserving differences, figures and data export.
+- **Fit peaks → Analyze fit stability**: repeated starts, component-area ranges and
+  attempt-by-attempt components/residuals, with saved/exportable reports.
 - **File → Save/Open project**: portable projects with embedded traces and images.
 - **File → Export figure or results**: PNG/TIFF/PDF/SVG, exact sizes, transparency,
   font settings, and provenance-bearing CSV/JSON tables.
 - **Labels** tab: compound names, review states, rotation, draggable placement and history.
 - **File → Recover chromatogram from image**: calibrated axes, color/manual tracing,
-  masks, editable points and explicit missing intervals.
+  deskew/perspective correction, masks, editable points, quality flags and multi-color
+  trace collections, with explicit missing intervals and optional repairs.
 - **Analysis → External-standard calibration**: linear fits, weighting/intercept options,
   residuals, reviewed standards, ranged concentrations and dilution factors.
 - **Analysis → Batch process text chromatograms**: reusable mappings/analysis settings,
