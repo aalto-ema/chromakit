@@ -20,7 +20,8 @@ included; the checklist below also applies to future publication work.
 
 The repository MIT license covers ChromaKit source and included synthetic examples.
 Dependencies retain their own licenses; the current wheel does not bundle them.
-Standalone app packaging and dependency-redistribution review remain future work.
+The Windows x64 installer is available as an unsigned development workflow artifact;
+it includes runtime license notices and source references. See [installer documentation](WINDOWS_INSTALLER.md).
 
 ## Before the first push
 
@@ -63,8 +64,8 @@ available or publish screenshots containing lab data.
 
 For a later tagged release, repeat checks in a fresh environment, install the built
 wheel independently of the checkout, smoke-test the launcher/entry point, update the
-changelog and validate relevant native UI workflows. This repository does not contain
-a package-upload or release-publishing workflow.
+changelog and validate relevant native UI workflows. The installer workflow uploads
+Actions artifacts; it does not publish a GitHub Release or upload to a package index.
 
 Action references: [actions/checkout](https://github.com/actions/checkout),
 [actions/setup-python](https://github.com/actions/setup-python).

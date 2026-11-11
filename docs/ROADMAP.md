@@ -5,7 +5,7 @@ measured peak integration, constrained deconvolution, portable project save/reop
 publication figure/result export, compound labels, calibrated image recovery,
 external-standard linear calibration, reviewed text batches and compound libraries,
 comparison overlays/differences, image deskew/perspective/multi-color recovery, and
-repeated-start fit stability.
+repeated-start fit stability, and a Windows x64 installer workflow.
 See [WORKFLOWS.md](WORKFLOWS.md) for exact supported behavior and validation limits.
 
 ## Next validation and refinements
@@ -16,7 +16,7 @@ See [WORKFLOWS.md](WORKFLOWS.md) for exact supported behavior and validation lim
 - Expanded calibration QC, internal standards, uncertainty/LOD/LOQ with named validated methods.
 - Standalone reusable batch recipes, sample-role/standard metadata and unattended processing.
 - Project recovery/large-history performance and later version migration fixtures.
-- Standalone desktop packaging, dependency license notices and release documentation.
+- Signed release installers, other architectures, and macOS desktop packaging.
 
 Do not advertise these later refinements as implemented or infer chemical identity
 from mathematical fits/retention windows. Existing CI and known-truth tests support

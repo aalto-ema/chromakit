@@ -17,7 +17,13 @@ native Windows and representative laboratory validation remain outstanding.
 
 ## Start
 
-Use **Python 3.11 or later**. macOS and Windows are the target desktop platforms.
+For **Windows x64**, open the [Windows installer workflow](https://github.com/aalto-ema/chromakit/actions/workflows/windows-installer.yml),
+select a successful run, and download the **ChromaKit-Windows-x64** artifact. Sign in
+to GitHub to download it, extract the ZIP, and run the setup executable. It installs
+for the current user and includes Python and Qt. These development builds are unsigned
+and the artifacts expire after 30 days. See [installer documentation](docs/WINDOWS_INSTALLER.md).
+
+For a source checkout, use **Python 3.11 or later**. macOS and Windows are the target desktop platforms.
 This is an early research app. Save a `.chromakit` project to preserve imported
 data, processing, labels, images, calibration and library records between sessions.
 

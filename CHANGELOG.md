@@ -4,6 +4,8 @@
 
 Initial public source preparation; no packaged stable release has been published.
 
+- Add an automated, per-user Windows x64 installer with bundled runtime, SHA-256
+  checksum, and install/launch/uninstall checks on GitHub Actions.
 - PySide6 desktop workspace and root `run_app.py` launcher.
 - Reviewed CSV/TSV/TXT mapping, locale/encoding controls, immutable samples and units.
 - Explicit omission of missing signal entries with gap and source-line provenance.

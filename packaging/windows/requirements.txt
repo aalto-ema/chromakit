@@ -1,0 +1,2 @@
+# Build tool only; app dependencies and version are defined in pyproject.toml.
+PyInstaller==6.22.3
